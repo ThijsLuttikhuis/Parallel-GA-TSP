@@ -4,7 +4,6 @@
 
 #include <random>
 #include <algorithm>
-#include <iostream>
 
 #include "TSPRoute.h"
 #include "Random.h"
@@ -13,7 +12,7 @@ const std::vector<unsigned long> &TSPRoute::getOrder() const {
     return order;
 }
 
-void TSPRoute::setRandomRoute() {
+void TSPRoute::setRandomOrder() {
     /// set the route in order of index
     order = std::vector<unsigned long>(length);
     for (unsigned long i = 0; i < length; i++) {
@@ -25,7 +24,7 @@ void TSPRoute::setRandomRoute() {
 }
 
 
-void TSPRoute::setRouteFromParents(TSPRoute* parent1, TSPRoute* parent2) {
+void TSPRoute::setOrderFromParents(TSPRoute* parent1, TSPRoute* parent2) {
     /// create new order vector and get the order of each parent
     order = std::vector<unsigned long>(length, -1);
     auto parent1order = parent1->getOrder();
@@ -132,7 +131,7 @@ double TSPRoute::getDist(unsigned long indexA, unsigned long indexB) const {
     return sqrt(getDistSquared(indexA, indexB));
 }
 
-void TSPRoute::setRoute(std::vector<unsigned long> route) {
+void TSPRoute::setOrder(std::vector<unsigned long> route) {
     order = {};
     std::copy(&route[0], &route[length], back_inserter(order));
 }

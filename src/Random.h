@@ -34,8 +34,8 @@ public:
         return unif(rng);
     }
 
-    static double randInt(int min, int max) {
-        return min + (1 + max - min) * unif(rng);
+    static int randInt(int min, int max) {
+        return (int)(min + (1 + max - min) * unif(rng));
     }
 
     static double random(double min, double max) {

@@ -16,23 +16,22 @@ private:
     double* xPoints;
     double* yPoints;
 public:
-    TSPRoute() = default;
 
     TSPRoute(unsigned long length, double* xPoints, double* yPoints)
           : length(length), xPoints(xPoints), yPoints(yPoints) {}
 
 
-    const std::vector<unsigned long> &getOrder() const;
+    [[nodiscard]] const std::vector<unsigned long> &getOrder() const;
 
     /**
      * @brief set a route randomly by shuffling the points around
      */
-    void setRandomRoute();
+    void setRandomOrder();
 
     /**
      * @brief set a route from a vector
      */
-    void setRoute(std::vector<unsigned long> route);
+    void setOrder(std::vector<unsigned long> route);
 
     /**
      * @brief set the route of the child using two parents and some heuristics
@@ -49,22 +48,22 @@ public:
      *
      * 4. Go in a similar fashion through all the cities until the child has all cities
      */
-    void setRouteFromParents(TSPRoute* parent1, TSPRoute* parent2);
+    void setOrderFromParents(TSPRoute* parent1, TSPRoute* parent2);
 
     /**
      * @brief return the total length of the route
      */
-    double getRouteLength() const;
+    [[nodiscard]] double getRouteLength() const;
 
     /**
      * @brief return the distance squared between two points (indices) in the vector 'order'
      */
-    double getDistSquared(unsigned long indexA, unsigned long indexB) const;
+    [[nodiscard]] double getDistSquared(unsigned long indexA, unsigned long indexB) const;
 
     /**
      * @brief return the distance between two points (indices) in the vector 'order'
      */
-    double getDist(unsigned long indexA, unsigned long indexB) const;
+    [[nodiscard]] double getDist(unsigned long indexA, unsigned long indexB) const;
 };
 
 

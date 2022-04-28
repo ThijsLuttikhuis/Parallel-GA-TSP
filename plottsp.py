@@ -16,11 +16,9 @@ def ReadPoints(filename, length):
     data = np.loadtxt(filename, skiprows=4, max_rows=length + 1)
     return data
 
-
 def ReadPath(filename, length):
     data = np.loadtxt(filename, skiprows=length + 7, delimiter=',')
     return data
-
 
 populationSize, generations, length, xSize, ySize = ReadHeader("./build/tsp.dat")
 
@@ -36,6 +34,7 @@ path = np.array(data[:, 2:-1], dtype=int)
 bestPathLength = 9e99
 for i in range(len(generation)):
 
+    # only make a plot if a shorter path is found
     if not pathLength[i] < bestPathLength:
         continue
 
@@ -45,9 +44,6 @@ for i in range(len(generation)):
 
     newXPoints = xPoints[path[i,:]]
     newYPoints = yPoints[path[i,:]]
-
-    # only make a plot if a shorter path is found
-
 
     plt.figure()
     plt.plot(xPoints, yPoints, '.', color='black')
@@ -61,8 +57,10 @@ for i in range(len(generation)):
     plt.title("generation: " + str(i) + "  -  path length: " + str(pathLength[i]))
 
     if (i < 10):
-        generationstr = "00" + str(i)
+        generationstr = "000" + str(i)
     elif (i < 100):
+        generationstr = "00" + str(i)
+    elif (i < 1000):
         generationstr = "0" + str(i)
     else:
         generationstr = str(i)

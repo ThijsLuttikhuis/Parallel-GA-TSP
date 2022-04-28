@@ -14,30 +14,32 @@
 
 int main(int argc, char** argv) {
     /// ----- initialize program variables -----
-    MPIController mpiController;
-    TravellingSalesman travellingSalesman;
+    auto mpiController = MPIController(argc, argv, TSP_N_MIGRATE);
+    auto travellingSalesman = TravellingSalesman(argc, argv, &mpiController, TSP_N_KEEP_BEST_PARENTS);
+    Random::initialize(mpiController.getID()+42);
+    MPITimer timer;
 
-    bool success;
-    success = travellingSalesman.initializeParameters(argc, argv, &mpiController, TSP_N_KEEP_BEST_PARENTS);
-    if (!success) return -1;
+    /// ----- run TSP_N_RUNS times to measure mean and std of time taken -----
+    for (int n = 0; n < TSP_N_RUNS; n++) {
+        timer.start();
 
-    success = mpiController.initialize(argc, argv, TSP_N_MIGRATE);
-    if (!success) return -1;
+        /// ----- create a population of random paths -----
+        travellingSalesman.randomizeRoutePoints();
+        travellingSalesman.createPopulation();
 
-    Random::initialize(mpiController.getID()+123);
+        /// ----- create new generations of paths in a loop -----
+        for (unsigned long generation = 0; generation < travellingSalesman.getNumberOfGenerations(); generation++) {
+            travellingSalesman.runGeneration(generation);
 
-    /// ----- create a population of random paths -----
-    travellingSalesman.randomizeRoutePoints();
-    travellingSalesman.createPopulation();
-
-    /// ----- create new generations of paths in a loop -----
-    for (unsigned long generation = 0; generation < travellingSalesman.getNumberOfGenerations(); generation++) {
-        travellingSalesman.runGeneration(generation);
-
-        if (generation % TSP_GENS_BETWEEN_MIGRATE == 0) {
-            travellingSalesman.migrate();
+            if (generation % TSP_GENS_BETWEEN_MIGRATE == 0) {
+                travellingSalesman.migrate();
+            }
         }
+
+        timer.stop();
     }
+
+    timer.printTimeStats();
 
     /// ----- finalize mpi, close file and exit -----
     mpiController.finalize();
