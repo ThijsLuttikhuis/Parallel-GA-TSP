@@ -134,9 +134,13 @@ void TravellingSalesman::runGeneration(unsigned long generation) {
         return parent1->getRouteLength() > parent2->getRouteLength();
     });
 
-    /// migrate every generationsBetweenMigrate
+    /// migrate every generationsBetweenMigrate and sort again
     if (generation % generationsBetweenMigrate == 0) {
         migrate();
+
+        std::sort(tspParents.begin(), tspParents.end(), [](TSPRoute* parent1, TSPRoute* parent2) {
+            return parent1->getRouteLength() > parent2->getRouteLength();
+        });
     }
 
     /// print best path to file, which is at the last index of tspParents

@@ -7,7 +7,7 @@
 #include "src/MPITimer.h"
 #include "src/Random.h"
 
-#define TSP_N_RUNS 5                                    // number of runs to average the time between
+#define TSP_N_RUNS 10                                   // number of runs to average the time between
 #define TSP_USE_DEFAULT_SEED 0                          // use default seed to make points in every random run the same
 
 #define TSP_USE_FILE_INPUT_POINTS 1                     // use an input file with starting points
