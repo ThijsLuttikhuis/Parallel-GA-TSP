@@ -16,16 +16,16 @@ def ReadPoints(filename, length):
     data = np.loadtxt(filename, skiprows=4, max_rows=length + 1)
     return data
 
-def ReadPath(filename, length):
-    data = np.loadtxt(filename, skiprows=length + 7, delimiter=',')
+def ReadPath(filename, length, generations):
+    data = np.loadtxt(filename, skiprows=length + 7, delimiter=',', max_rows=generations)
     return data
 
 populationSize, generations, length, xSize, ySize = ReadHeader("./build/tsp.dat")
-
+print(length)
 points = ReadPoints("./build/tsp.dat", length)
 xPoints = points[:, 0]
 yPoints = points[:, 1]
-data = ReadPath("./build/tsp.dat", length)
+data = ReadPath("./build/tsp.dat", length, generations)
 
 generation = data[:, 0]
 pathLength = data[:, 1]

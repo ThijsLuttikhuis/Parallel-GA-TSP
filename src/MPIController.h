@@ -42,7 +42,7 @@ public:
         }
         std = sqrt(std) / (double) n;
 
-        std::cout << "time taken: " << mean << " +- " << std << std::endl;
+        std::cout << n << " runs, time taken: " << mean << " +- " << std << std::endl;
     }
 };
 
@@ -61,6 +61,7 @@ private:
     unsigned long length;
     unsigned long cout;
     FILE* file;
+
 public:
     MPIController(int argc, char** argv, unsigned long nMigrate_);
 

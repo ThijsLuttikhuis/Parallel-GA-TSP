@@ -35,11 +35,11 @@ public:
     }
 
     static int randInt(int min, int max) {
-        return (int)(min + (1 + max - min) * unif(rng));
+        return (int)(min + (1 + max - min) * random());
     }
 
     static double random(double min, double max) {
-        return min + (max - min) * unif(rng);
+        return min + (max - min) * random();
     }
 
 };

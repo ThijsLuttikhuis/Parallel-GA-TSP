@@ -4,24 +4,14 @@
 
 #include <iostream>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
 
 #include "TravellingSalesman.h"
 #include "Random.h"
 
 TravellingSalesman::TravellingSalesman(int argc, char** argv, MPIController* mpiController_,
                                        unsigned long nKeepBestParents_) {
-
-    /// check for the correct number of input parameters
-    if (argc < 5 || argc > 7) {
-        fprintf(stderr, "usage: %s pop_size n_route x_size [y_size] [cout]\n", argv[0]);
-        fprintf(stderr, "    pop_size = number of trial populations for the genetic algorithm\n");
-        fprintf(stderr, "    gens     = number of generations (\'time steps\')\n");
-        fprintf(stderr, "    n_route  = number of points for the salesman to travel past\n");
-        fprintf(stderr, "    x_size   = box width where the route points could be in\n");
-        fprintf(stderr, "    y_size   = (optional) box height -- default: x_size\n");
-        fprintf(stderr, "    cout     = interval for printing best route length to stdout\n");
-        exit(-1);
-    }
 
     /// get input parameters
     char* pEnd;
@@ -32,23 +22,23 @@ TravellingSalesman::TravellingSalesman(int argc, char** argv, MPIController* mpi
     ySize = argc > 5 ? strtod(*++argv, &pEnd) : xSize;
 
     /// check if the input parameters are valid
-    if (populationSize < 1 || populationSize > 10000) {
-        std::cerr << "pop_size should be between 1 and 10000" << std::endl;
+    if (populationSize < 1 || populationSize >= 100000) {
+        std::cerr << "pop_size should be between 1 and 100000" << std::endl;
         exit(-1);
     }
-    if (generations < 1 || generations > 10000) {
+    if (generations < 1 || generations >= 10000) {
         std::cerr << "gens should be between 1 and 10000" << std::endl;
         exit(-1);
     }
-    if (length < 3 || length > 10000) {
-        std::cerr << "n_route should be between 3 and 10000" << std::endl;
+    if (length < 4 || length >= 10000) {
+        std::cerr << "n_route should be between 4 and 10000" << std::endl;
         exit(-1);
     }
-    if (xSize < 0.1 || xSize > 10000.0) {
+    if (xSize < 0.1 || xSize >= 10000.0) {
         std::cerr << "x_size should be between 0.1 and 10000" << std::endl;
         exit(-1);
     }
-    if (ySize < 0.1 || ySize > 10000.0) {
+    if (ySize < 0.1 || ySize >= 10000.0) {
         std::cerr << "y_size should be between 0.1 and 10000" << std::endl;
         exit(-1);
     }
@@ -81,30 +71,63 @@ void TravellingSalesman::randomizeRoutePoints() {
     mpiController->pointsBroadcast(xPoints, yPoints);
 }
 
+void TravellingSalesman::loadRoutePoints(const std::string &fileName) {
+    if (mpiController->getID() == 0) {
+        std::ifstream file;
+        file.open(fileName);
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
+        std::string inputStr = buffer.str();
+        char** ptr = nullptr;
+        size_t pos = 0;
+        for (unsigned long i = 0; i < length; i++) {
+            size_t commaPos = inputStr.find(',');
+            size_t endLinePos = inputStr.find('\n');
+
+            auto xstr = inputStr.substr(pos, commaPos);
+            auto ystr = inputStr.substr(commaPos+1, endLinePos);
+            inputStr = inputStr.substr(endLinePos+1, inputStr.size()-1);
+
+            xPoints[i] = strtod(xstr.c_str(), ptr);
+            yPoints[i] = strtod(ystr.c_str(), ptr);
+        }
+
+        mpiController->printPointsToFile(populationSize, generations, xSize, ySize, xPoints, yPoints);
+    }
+    mpiController->pointsBroadcast(xPoints, yPoints);
+}
+
 void TravellingSalesman::createPopulation() {
     /// initialize a number of parent routes equal to the pop size and set a random route
-    tspChildren = std::vector<TSPRoute>(populationSize, TSPRoute(length, xPoints, yPoints));
-    tspParents = std::vector<TSPRoute>(populationSize, TSPRoute(length, xPoints, yPoints));
+    tspChildren = std::vector<TSPRoute*>(populationSize);
+    tspParents = std::vector<TSPRoute*>(populationSize);
 
     for (unsigned long i = 0; i < populationSize; i++) {
-        tspParents[i].setRandomOrder();
+        tspChildren[i] = new TSPRoute(length, xPoints, yPoints);
+        tspParents[i] = new TSPRoute(length, xPoints, yPoints);
+        tspParents[i]->setRandomOrder();
     }
 }
 
 int TravellingSalesman::getRandomWeightedIndex(double powerFactor) {
-    return (int) std::pow((Random::random(0, std::pow(populationSize, powerFactor) - 1)), 1.0 / powerFactor);
+    double power = std::pow(populationSize, powerFactor);
+    double num = Random::random(0.0, power - 1.0);
+    return (int) std::pow((num), 1.0 / powerFactor);
 }
 
 void TravellingSalesman::runGeneration(unsigned long generation) {
 
     /// sort the parents by route length (greatest length first, putting the 'fittest' member last)
-    std::sort(tspParents.begin(), tspParents.end(), [](const TSPRoute &parent1, const TSPRoute &parent2) {
-        return parent1.getRouteLength() > parent2.getRouteLength();
+    std::sort(tspParents.begin(), tspParents.end(), [](TSPRoute* parent1, TSPRoute* parent2) {
+        return parent1->getRouteLength() > parent2->getRouteLength();
     });
 
-    /// print best path to file, which is at the last index of tspParents
-    double bestRouteLength = tspParents[populationSize - 1].getRouteLength();
-    auto bestOrder = tspParents[populationSize-1].getOrder();
+    /// print best path to file, which is at the last inde-> of tspParents
+    double bestRouteLength = tspParents[populationSize - 1]->getRouteLength();
+    auto bestOrder = tspParents[populationSize - 1]->getOrder();
     auto* bestOrderArr = new unsigned long[length];
     std::copy(bestOrder.begin(), bestOrder.end(), &bestOrderArr[0]);
     mpiController->printBestPath(generation, bestRouteLength, bestOrderArr);
@@ -118,12 +141,12 @@ void TravellingSalesman::runGeneration(unsigned long generation) {
         int r2 = getRandomWeightedIndex(powerFactor);
         while (r2 == r1) r2 = getRandomWeightedIndex(powerFactor);
 
-        tspChildren[i].setOrderFromParents(&tspParents[r1], &tspParents[r2]);
+        tspChildren[i]->setOrderFromParents(tspParents[r1], tspParents[r2]);
     }
 
     /// set the children as the new parents
     for (unsigned long i = 0; i < populationSize - nKeepBestParents; i++) {
-        tspParents[i].setOrder(tspChildren[i].getOrder());
+        tspParents[i]->setOrder(tspChildren[i]->getOrder());
     }
 }
 
@@ -136,7 +159,7 @@ void TravellingSalesman::migrate() {
 
     /// put all outgoing parents' orders into one array
     for (unsigned long i = 0; i < nMigrate * 2; i++) {
-        auto order = tspParents[populationSize - 1 - i].getOrder();
+        auto order = tspParents[populationSize - 1 - i]->getOrder();
         std::copy(order.begin(), order.end(), &sendMigrationData[i * length]);
     }
 
@@ -153,15 +176,9 @@ void TravellingSalesman::migrate() {
     for (unsigned long i = 0; i < nMigrate * 2; i++) {
         std::vector<unsigned long> order;
         std::copy(&receiveMigrationData[i * length], &receiveMigrationData[(i + 1) * length], back_inserter(order));
-        tspParents[populationSize - 1 - i].setOrder(order);
+        tspParents[populationSize - 1 - i]->setOrder(order);
     }
 
     delete[] receiveMigrationData;
     delete[] sendMigrationData;
 }
-
-
-
-
-
-

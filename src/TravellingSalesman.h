@@ -24,8 +24,8 @@ private:
     double* xPoints;
     double* yPoints;
 
-    std::vector<TSPRoute> tspChildren;
-    std::vector<TSPRoute> tspParents;
+    std::vector<TSPRoute*> tspChildren;
+    std::vector<TSPRoute*> tspParents;
 
     /**
      * @brief return a random parent index weighted by powerFactor according to the position of the parent in the array
@@ -36,6 +36,11 @@ public:
     TravellingSalesman(int argc, char** argv, MPIController* mpiController_, unsigned long nKeepBestParents);
 
     [[nodiscard]] unsigned long getNumberOfGenerations() const;
+
+    /**
+     * @brief load the route points from a file
+     */
+    void loadRoutePoints(const std::string &fileName);
 
     /**
      * @brief create a set of x and y locations to visit randomly selected within the box x(0,xSize), y(0,ySize)

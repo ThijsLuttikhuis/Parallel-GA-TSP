@@ -7,7 +7,7 @@
 
 MPIController::MPIController(int argc, char** argv, unsigned long nMigrate_) {
     char* pEnd;
-    ++argv;
+    unsigned long populationSize = strtol(*++argv, &pEnd, 10);
     ++argv;
     length = strtol(*++argv, &pEnd, 10);
     ++argv;
@@ -28,6 +28,12 @@ MPIController::MPIController(int argc, char** argv, unsigned long nMigrate_) {
 
     if (id == 0) {
         printf("MPI initialized\n");
+    }
+
+    if (populationSize < 2 * nMigrate_ * nTasks) {
+        std::cerr << "pop_size should be larger than twice the migrating population times number of processes"
+                  << std::endl;
+        exit(-1);
     }
 
     leftID = (id == 0) ? nTasks - 1 : id - 1;
@@ -66,7 +72,7 @@ void MPIController::printPointsToFile(unsigned long populationSize, unsigned lon
     for (unsigned long i = 0; i < length; i++) {
         fprintf(file, "%20.10g %20.10g\n", xPoints[i], yPoints[i]);
     }
-    fprintf(file, "\n\ngeneration, path-length, path-order[number of points in path]");
+    fprintf(file, "\n\ngeneration, path-length, path-order[number of points in path]\n");
 }
 
 void MPIController::finalize() {
@@ -82,11 +88,11 @@ void MPIController::finalize() {
 void MPIController::printPathToFile(unsigned long generation, double routeLength, unsigned long* order) {
     if (!(cout > 0 && id == 0)) return;
 
-    fprintf(file, "\n%lu, %f, ", generation, routeLength);
+    fprintf(file, "%lu, %f, ", generation, routeLength);
     for (unsigned long i = 0; i < length; i++) {
         fprintf(file, "%lu,", order[i]);
     }
-    fprintf(file, "%lu", order[0]);
+    fprintf(file, "%lu\n", order[0]);
 
     if (cout > 0 && generation % cout == 0) {
         std::cout << "generation: " << generation << "\nroute length: " << routeLength << ", path: ";
@@ -98,12 +104,12 @@ void MPIController::printPathToFile(unsigned long generation, double routeLength
 }
 
 void MPIController::orderBufferSend(unsigned long* data, bool left) {
-    rc = MPI_Bsend(data, (int)(length * nMigrate), MPI_UNSIGNED_LONG,
+    rc = MPI_Bsend(data, (int) (length * nMigrate), MPI_UNSIGNED_LONG,
                    left ? leftID : rightID, tag, MPI_COMM_WORLD);
 }
 
 void MPIController::orderBufferReceive(unsigned long* data, bool left) {
-    rc = MPI_Recv(data, (int)(length * nMigrate), MPI_UNSIGNED_LONG,
+    rc = MPI_Recv(data, (int) (length * nMigrate), MPI_UNSIGNED_LONG,
                   left ? leftID : rightID, tag, MPI_COMM_WORLD, &status);
 }
 
@@ -113,15 +119,14 @@ void MPIController::sendBufferedMessages() {
 }
 
 void MPIController::pointsBroadcast(double* xPoints, double* yPoints) {
-    rc = MPI_Bcast(xPoints, (int)length, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    rc = MPI_Bcast(yPoints, (int)length, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    rc = MPI_Bcast(xPoints, (int) length, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    rc = MPI_Bcast(yPoints, (int) length, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
 void MPIController::printBestPath(unsigned long generation, double bestRouteLength, unsigned long* bestOrder) {
 
     double* allRouteLengths = nullptr;
     unsigned long* allBestOrders = nullptr;
-
 
     if (id == 0) {
         allRouteLengths = new double[nTasks];
@@ -131,10 +136,12 @@ void MPIController::printBestPath(unsigned long generation, double bestRouteLeng
     rc = MPI_Gather(&bestRouteLength, 1, MPI_DOUBLE,
                     allRouteLengths, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    rc = MPI_Gather(&bestOrder[0], (int)length, MPI_UNSIGNED_LONG,
-                    allBestOrders, (int)length, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    rc = MPI_Gather(&bestOrder[0], (int) length, MPI_UNSIGNED_LONG,
+                    allBestOrders, (int) length, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-    if (id != 0) return;
+    if (id != 0) {
+        return;
+    }
 
     int bestI = 0;
     for (int i = 0; i < nTasks; i++) {
@@ -145,8 +152,3 @@ void MPIController::printBestPath(unsigned long generation, double bestRouteLeng
 
     printPathToFile(generation, allRouteLengths[bestI], &allBestOrders[bestI * length]);
 }
-
-
-
-
-

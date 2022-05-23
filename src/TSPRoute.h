@@ -11,17 +11,21 @@
 class TSPRoute {
 private:
     std::vector<unsigned long> order;
+    double routeLength = 0.0;
 
     unsigned long length;
     double* xPoints;
     double* yPoints;
+
+    void setUniqueEncoding();
 public:
 
     TSPRoute(unsigned long length, double* xPoints, double* yPoints)
           : length(length), xPoints(xPoints), yPoints(yPoints) {}
 
-
     [[nodiscard]] const std::vector<unsigned long> &getOrder() const;
+
+    static void createDistanceTable(unsigned long length_, const double* xPoints_, const double* yPoints_);
 
     /**
      * @brief set a route randomly by shuffling the points around
@@ -53,7 +57,7 @@ public:
     /**
      * @brief return the total length of the route
      */
-    [[nodiscard]] double getRouteLength() const;
+    [[nodiscard]] double getRouteLength();
 
     /**
      * @brief return the distance squared between two points (indices) in the vector 'order'
