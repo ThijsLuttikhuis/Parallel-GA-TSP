@@ -5,35 +5,45 @@
 #ifndef GATSP_TRAVELLINGSALESMAN_H
 #define GATSP_TRAVELLINGSALESMAN_H
 
-#include <mpi.h>
+
+#include <iostream>
 #include <vector>
-#include "TSPRoute.h"
-#include "MPIController.h"
+
+class MPIController;
+
+class TSPRoute;
 
 class TravellingSalesman {
 private:
+    std::vector<TSPRoute*> tspChildren;
+    std::vector<TSPRoute*> tspParents;
+
     MPIController* mpiController;
 
     unsigned long populationSize;
     unsigned long generations;
-    unsigned long length;
     unsigned long nKeepBestParents;
+    unsigned long generationsBetweenMigrate;
     double xSize;
     double ySize;
 
+    unsigned long nPoints;
     double* xPoints;
     double* yPoints;
-
-    std::vector<TSPRoute*> tspChildren;
-    std::vector<TSPRoute*> tspParents;
 
     /**
      * @brief return a random parent index weighted by powerFactor according to the position of the parent in the array
      */
     int getRandomWeightedIndex(double powerFactor);
 
+    /**
+     * @brief migrate some of the best parents between processes using the stepping-stone model
+     */
+    void migrate();
+
 public:
-    TravellingSalesman(int argc, char** argv, MPIController* mpiController_, unsigned long nKeepBestParents);
+    TravellingSalesman(int argc, char** argv, MPIController* mpiController_,
+                       unsigned long nKeepBestParents_, unsigned long generationsBetweenMigrate_);
 
     [[nodiscard]] unsigned long getNumberOfGenerations() const;
 
@@ -55,20 +65,14 @@ public:
     /**
      * @brief create a new set of parents by genetics of the parents
      *
-     * 1. Sort parents by route length and print the best parent to file.
+     * 1. Create new children from parents, where parents with a shorter path length are more likely to 'breed'.
+     * A heuristic algorithm is used based on the order of both parents, more info in the function setOrderFromParents.
      *
-     * 2. Create new children from these parents, where parents with a shorter path length are more likely to 'breed'.
-     * A heuristic algorithm is used based on the order of both parents.
+     * 2. Set the children as the parents for the next generation and repeat.
      *
-     * 3. Set the children as the parents for the next generation and repeat.
+     * 3. Sort parents by route length and print the best parent to file.
      */
     void runGeneration(unsigned long generation);
-
-    /**
-     * @brief migrate some of the best parents between processes using the stepping-stone model
-     */
-    void migrate();
-
 };
 
 

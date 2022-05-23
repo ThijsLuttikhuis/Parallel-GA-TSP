@@ -14,34 +14,30 @@ private:
     static std::uniform_real_distribution<double> unif;
 
 public:
+    /**
+    * @brief initialize the random engine with the specified seed
+    */
+    static void initialize(int seed);
 
-    static void initialize(int seed) {
-        if (seed == 0) {
-            std::random_device rd;
-            rng = std::mt19937(rd());
-        }
-        else {
-            rng = std::mt19937(seed);
-        }
-        unif = std::uniform_real_distribution<double>(0.0, 1.0);
-    }
+    /**
+    * @brief return the random engine
+    */
+    static std::mt19937 &getRNG();
 
-    static std::mt19937 &getRNG() {
-        return rng;
-    }
+    /**
+    * @brief get a random number between 0.0 and 1.0, 0.0 included, 1.0 excluded
+    */
+    static double random();
 
-    static double random() {
-        return unif(rng);
-    }
+    /**
+    * @brief get a random integer between min and max, both min and max included
+    */
+    static int randInt(int min, int max);
 
-    static int randInt(int min, int max) {
-        return (int)(min + (1 + max - min) * random());
-    }
-
-    static double random(double min, double max) {
-        return min + (max - min) * random();
-    }
-
+    /**
+    * @brief get a random number between min and max, min included, max excluded
+    */
+    static double random(double min, double max);
 };
 
 

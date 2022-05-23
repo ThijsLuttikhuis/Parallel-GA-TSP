@@ -4,17 +4,18 @@
 
 #include "src/TravellingSalesman.h"
 #include "src/MPIController.h"
+#include "src/MPITimer.h"
 #include "src/Random.h"
 
-#define TSP_N_RUNS 5                                // number of runs to average the time between
-#define USE_DEFAULT_SEED 0                          // use a default seed to make every run with random points the same
+#define TSP_N_RUNS 5                                    // number of runs to average the time between
+#define TSP_USE_DEFAULT_SEED 0                          // use default seed to make points in every random run the same
 
-#define USE_FILE_INPUT_POINTS 0                     // use an input file with starting points
-#define FILE_NAME "../src/inputdata/uscapitals.dat" // file name containing input starting points
+#define TSP_USE_FILE_INPUT_POINTS 1                     // use an input file with starting points
+#define TSP_FILE_NAME "../src/inputdata/uscapitals.dat" // file name containing input starting points
 
-#define TSP_N_MIGRATE 10                            // number of parents migrating left and right per migration round
-#define TSP_GENS_BETWEEN_MIGRATE 10                 // number of generations between migration
-#define TSP_N_KEEP_BEST_PARENTS 5                   // number of best parents not reproducing, to keep optimal solution
+#define TSP_N_MIGRATE 20                                // number of parents migrating left/right per migration round
+#define TSP_GENS_BETWEEN_MIGRATE 5                      // number of generations between migration
+#define TSP_N_KEEP_BEST_PARENTS 2                       // number of parents not reproducing, to keep optimal solution
 
 int main(int argc, char** argv) {
     /// check for the correct number of input parameters
@@ -31,33 +32,33 @@ int main(int argc, char** argv) {
 
     /// ----- initialize program variables -----
     auto mpiController = MPIController(argc, argv, TSP_N_MIGRATE);
-    auto travellingSalesman = TravellingSalesman(argc, argv, &mpiController, TSP_N_KEEP_BEST_PARENTS);
+    auto travellingSalesman = TravellingSalesman(argc, argv, &mpiController,
+                                                 TSP_N_KEEP_BEST_PARENTS, TSP_GENS_BETWEEN_MIGRATE);
 
     /// ----- initialize the timer and random engine
     MPITimer timer;
-    Random::initialize(USE_DEFAULT_SEED ? mpiController.getID() + 12345
-                                        : mpiController.getID() * 10 + time(nullptr));
+#if TSP_USE_DEFAULT_SEED == 0
+    Random::initialize(10 * mpiController.getID() + (int) time(nullptr));
+#else
+    Random::initialize(mpiController.getID() + 12345);
+#endif
 
     /// ----- run TSP_N_RUNS times to measure mean and std of time taken -----
     for (int n = 0; n < TSP_N_RUNS; n++) {
         timer.start();
 
         /// ----- create a population of paths -----
-        if (USE_FILE_INPUT_POINTS) {
-            travellingSalesman.loadRoutePoints(FILE_NAME);
-        } else {
-            travellingSalesman.randomizeRoutePoints();
-        }
+#if TSP_USE_FILE_INPUT_POINTS == 0
+        travellingSalesman.randomizeRoutePoints();
+#else
+        travellingSalesman.loadRoutePoints(TSP_FILE_NAME);
+#endif
 
         travellingSalesman.createPopulation();
 
         /// ----- create new generations of paths in a loop -----
         for (unsigned long generation = 0; generation < travellingSalesman.getNumberOfGenerations(); generation++) {
             travellingSalesman.runGeneration(generation);
-
-            if (generation % TSP_GENS_BETWEEN_MIGRATE == 0) {
-                travellingSalesman.migrate();
-            }
         }
         timer.stop();
     }
@@ -68,4 +69,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

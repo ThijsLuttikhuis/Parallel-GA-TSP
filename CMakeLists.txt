@@ -12,6 +12,7 @@ add_executable(GATSP main.cpp
         src/TSPRoute.cpp src/TSPRoute.h
         src/Random.h src/Random.cpp
         src/TravellingSalesman.cpp src/TravellingSalesman.h
-        src/MPIController.cpp src/MPIController.h)
+        src/MPIController.cpp src/MPIController.h
+        src/MPITimer.cpp src/MPITimer.h)
 
 target_link_libraries(GATSP PUBLIC MPI::MPI_CXX)

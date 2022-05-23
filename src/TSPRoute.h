@@ -5,6 +5,7 @@
 #ifndef GATSP_TSPROUTE_H
 #define GATSP_TSPROUTE_H
 
+
 #include <iostream>
 #include <vector>
 
@@ -13,19 +14,22 @@ private:
     std::vector<unsigned long> order;
     double routeLength = 0.0;
 
-    unsigned long length;
+    unsigned long nPoints;
     double* xPoints;
     double* yPoints;
 
+    /**
+    * @brief set a unique encoding for the route: set the order such that 0 is the first index,
+    * and the value at index 1 is larger than the value at the last index.
+    */
     void setUniqueEncoding();
+
 public:
 
-    TSPRoute(unsigned long length, double* xPoints, double* yPoints)
-          : length(length), xPoints(xPoints), yPoints(yPoints) {}
+    TSPRoute(unsigned long nPoints, double* xPoints, double* yPoints)
+          : nPoints(nPoints), xPoints(xPoints), yPoints(yPoints) {}
 
     [[nodiscard]] const std::vector<unsigned long> &getOrder() const;
-
-    static void createDistanceTable(unsigned long length_, const double* xPoints_, const double* yPoints_);
 
     /**
      * @brief set a route randomly by shuffling the points around
@@ -57,7 +61,7 @@ public:
     /**
      * @brief return the total length of the route
      */
-    [[nodiscard]] double getRouteLength();
+    double getRouteLength();
 
     /**
      * @brief return the distance squared between two points (indices) in the vector 'order'

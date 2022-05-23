@@ -8,44 +8,14 @@
 
 #include <mpi.h>
 #include <cmath>
-#include "TSPRoute.h"
+#include <vector>
 
-class MPITimer {
-private:
-    double t1 = 0.0;
-    double t2 = 0.0;
-    std::vector<double> times = {};
-
-public:
-    MPITimer() = default;
-
-    void start() {
-        t1 = MPI_Wtime();
-    }
-
-    void stop() {
-        t2 = MPI_Wtime();
-
-        times.push_back(t2 - t1);
-    }
-
-    void printTimeStats() const {
-        unsigned long n = times.size();
-        double mean = 0.0;
-        double std = 0.0;
-        for (auto &t : times) {
-            mean += t;
-        }
-        mean /= (double) n;
-        for (auto &t : times) {
-            std += (t - mean) * (t - mean);
-        }
-        std = sqrt(std) / (double) n;
-
-        std::cout << n << " runs, time taken: " << mean << " +- " << std << std::endl;
-    }
+enum Neighbour : bool {
+    left,
+    right,
 };
 
+class TSPRoute;
 
 class MPIController {
 private:
@@ -57,10 +27,15 @@ private:
     unsigned long nMigrate;
     int mpiBufferSize;
     char* mpiBuffer;
+    unsigned long nPoints;
 
-    unsigned long length;
     unsigned long cout;
     FILE* file;
+
+    /**
+    * @brief print the path with the specified generation, route length and path order (non-root processes just return)
+    */
+    void printPathToFile(unsigned long generation, double routeLength, unsigned long* order);
 
 public:
     MPIController(int argc, char** argv, unsigned long nMigrate_);
@@ -71,21 +46,40 @@ public:
 
     [[nodiscard]] int getNTasks() const;
 
+    /**
+    * @brief broadcast two arrays of points with length nPoints from process 0 to all processes
+    */
     void pointsBroadcast(double* xPoints, double* yPoints);
 
-    void orderBufferSend(unsigned long* data, bool left);
+    /**
+    * @brief send a buffer containing nMigrate path orders to the left or right neighbour
+    */
+    void orderBufferSend(unsigned long* data, Neighbour neighbour);
 
-    void orderBufferReceive(unsigned long* data, bool left);
+    /**
+    * @brief receive a buffer containing nMigrate path orders from the left or right neighbour
+    */
+    void orderBufferReceive(unsigned long* data, Neighbour neighbour);
 
+    /**
+    * @brief force the buffered messages to be send and received by resetting the buffer
+    */
     void sendBufferedMessages();
 
+    /**
+    * @brief print the x- and y-points to the file (non-root processes just return)
+    */
     void printPointsToFile(unsigned long populationSize, unsigned long generations,
                            double xSize, double ySize, double* xPoints, double* yPoints) const;
 
-    void printPathToFile(unsigned long generation, double routeLength, unsigned long* order);
+    /**
+    * @brief gather the best path from all processes to the root process, which prints the best global path to file
+    */
+    void printBestPathToFile(unsigned long generation, double bestRouteLength, unsigned long* bestOrder);
 
-    void printBestPath(unsigned long generation, double bestRouteLength, unsigned long* bestOrder);
-
+    /**
+    * @brief detach and delete buffer, close file and run MPI_Finalize()
+    */
     void finalize();
 };
 
